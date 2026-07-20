@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Música — Second Brain</title>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .music-player * { box-sizing: border-box; }
+  .music-player {
+    --surface-1: #faf5ec;
+    --border: #e8dcc8;
+    --border-strong: #d9c7a8;
+    --ink: #d9730d;
+    --text-primary: #3d2c20;
+    --text-secondary: #8a7561;
+    --text-muted: #b0a08c;
+    --radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    background: transparent;
+    padding: 1.25rem 1.5rem;
+    color: var(--text-primary);
+  }
+
+  .mp-now {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.1rem;
+  }
+
+  .mp-play {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .mp-play:hover { background: var(--surface-1); }
+  .mp-play.playing {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+  .mp-play svg { width: 16px; height: 16px; }
+  .mp-play .icon-play { fill: var(--text-primary); }
+  .mp-play.playing .icon-play { fill: #ffffff; }
+  .mp-play .icon-pause { fill: #ffffff; }
+
+  .mp-info { min-width: 0; }
+  .mp-title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mp-subtitle {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mp-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .mp-live-dot.live { background: var(--ink); }
+
+  .mp-stations {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    gap: 8px;
+    margin-bottom: 0.75rem;
+  }
+  .mp-station {
+    font-family: inherit;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 14px 4px;
+    font-size: 12.5px;
+    font-weight: 600;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .mp-station:hover { background: var(--surface-1); }
+  .mp-station.active {
+    background: var(--ink);
+    color: #ffffff;
+    border-color: var(--ink);
+  }
+
+  .mp-config-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: transparent;
+    border: none;
+    padding: 4px 0;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .mp-config-toggle span:first-child {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+  }
+  .mp-chevron {
+    font-size: 11px;
+    color: var(--text-secondary);
+    transition: transform .15s ease;
+  }
+  .mp-config-body {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .mp-config-field {
+    border-top: 1px solid var(--border);
+    padding-top: 9px;
+  }
+  .mp-config-label {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+  .mp-config-row {
+    display: flex;
+    gap: 6px;
+  }
+  .mp-config-row input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    font-family: inherit;
+    font-size: 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface-1);
+    color: var(--text-primary);
+    padding: 7px 9px;
+  }
+  .mp-config-row input[type="text"]:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
+  .mp-config-reset {
+    font-family: inherit;
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    padding: 0 10px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .mp-config-reset:hover { background: var(--surface-1); }
+  .mp-config-save {
+    margin-top: 2px;
+    padding: 8px 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-family: inherit;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .mp-config-save.saved {
+    background: var(--ink);
+    color: #ffffff;
+    border-color: var(--ink);
+  }
+
+  .mp-error {
+    display: none;
+    font-size: 11.5px;
+    color: #b3401f;
+    margin: -0.5rem 0 0.75rem;
+  }
+  .mp-error.show { display: block; }
+
+  .mp-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+    padding-top: 0.9rem;
+  }
+  .mp-volume {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    max-width: 170px;
+  }
+  .mp-volume svg { width: 14px; height: 14px; flex-shrink: 0; fill: var(--text-muted); }
+  .mp-volume input[type="range"] {
+    --pct: 65%;
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--ink) var(--pct), var(--border-strong) var(--pct));
+    outline: none;
+    cursor: pointer;
+  }
+  .mp-volume input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--ink);
+    cursor: pointer;
+    border: none;
+    margin-top: 0;
+  }
+  .mp-volume input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--ink) var(--pct), var(--border-strong) var(--pct));
+  }
+  .mp-volume input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--ink);
+    cursor: pointer;
+    border: none;
+  }
+  .mp-credit {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .mp-credit a {
+    color: var(--text-muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-strong);
+  }
+</style>
+</head>
+<body>
+
+<div class="music-player">
+
+  <div class="mp-now">
+    <button class="mp-play" id="mp-play" aria-label="Reproducir">
+      <svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <svg class="icon-pause" viewBox="0 0 24 24" style="display:none;"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+    </button>
+    <div class="mp-info">
+      <div class="mp-title" id="mp-title">Elige una estación</div>
+      <div class="mp-subtitle">
+        <span class="mp-live-dot" id="mp-live-dot"></span>
+        <span id="mp-subtitle-text">Pausado</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mp-stations" id="mp-stations"></div>
+  <div class="mp-error" id="mp-error">Ese link no parece válido. Prueba con otro.</div>
+
+  <div style="border-top:1px solid var(--border); padding-top:0.75rem;">
+    <button class="mp-config-toggle" id="mp-config-toggle">
+      <span>Cambiar una pista</span>
+      <span class="mp-chevron" id="mp-chevron">&#9660;</span>
+    </button>
+    <div class="mp-config-body" id="mp-config-body"></div>
+  </div>
+
+  <div class="mp-bottom">
+    <div class="mp-volume">
+      <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-.77-3.29-2-4.28v8.56c1.23-.99 2-2.51 2-4.28z"/></svg>
+      <input type="range" id="mp-volume-slider" min="0" max="100" value="65">
+    </div>
+    <div class="mp-credit">Vía <a href="https://youtube.com" target="_blank" rel="noopener" id="mp-credit-link">YouTube</a></div>
+  </div>
+
+  <div id="yt-player-container" style="position:absolute; width:2px; height:2px; overflow:hidden; opacity:0; pointer-events:none;">
+    <div id="yt-player"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+  // ---------------------------------------------------------------
+  // Estaciones fijas — edita esta lista para cambiar cuántas pistas
+  // tiene el player o qué video usa cada una.
+  // ---------------------------------------------------------------
+  const STATIONS = [
+    { key: 'piano',    label: 'Piano',    url: 'https://www.youtube.com/watch?v=mNr8gniwy_g' },
+    { key: 'fantasia', label: 'Fantasía', url: 'https://www.youtube.com/watch?v=u8xCmb7KbA0' },
+    { key: 'lofi',     label: 'Lofi',     url: 'https://www.youtube.com/watch?v=9kzE8isXlQY' },
+    { key: 'pop',      label: 'Pop',      url: 'https://www.youtube.com/watch?v=jAtYkNXdZ-U' }
+  ];
+
+  const STORAGE_KEY = 'music-stations-overrides-v1';
+
+  function loadOverrides(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(parsed && typeof parsed === 'object') return parsed;
+      }
+    }catch(e){ /* usa vacío si falla */ }
+    return {};
+  }
+
+  function saveOverrides(overrides){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides)); }
+    catch(e){ /* sigue funcionando solo en memoria si falla */ }
+  }
+
+  let overrides = loadOverrides();
+
+  function effectiveUrl(key){
+    const st = STATIONS.find(function(s){ return s.key === key; });
+    return (overrides[key] && overrides[key].trim()) || (st ? st.url : '');
+  }
+
+  let player = null;
+  let apiReady = false;
+  let pendingLoad = null;
+  let playing = false;
+  let activeStationKey = null;
+  let currentVideoUrl = '';
+  let currentVideoId = '';
+
+  const playBtn = document.getElementById('mp-play');
+  const iconPlay = playBtn.querySelector('.icon-play');
+  const iconPause = playBtn.querySelector('.icon-pause');
+  const titleEl = document.getElementById('mp-title');
+  const subtitleText = document.getElementById('mp-subtitle-text');
+  const liveDot = document.getElementById('mp-live-dot');
+  const stationsContainer = document.getElementById('mp-stations');
+  const errorEl = document.getElementById('mp-error');
+  const configToggle = document.getElementById('mp-config-toggle');
+  const configBody = document.getElementById('mp-config-body');
+  const chevron = document.getElementById('mp-chevron');
+  const volumeSlider = document.getElementById('mp-volume-slider');
+  const creditLink = document.getElementById('mp-credit-link');
+
+  function extractVideoId(url){
+    const m = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/);
+    return m ? m[1] : null;
+  }
+
+  function showError(show){
+    errorEl.classList.toggle('show', show);
+  }
+
+  function setPlayingUI(isPlaying){
+    playing = isPlaying;
+    playBtn.classList.toggle('playing', isPlaying);
+    iconPlay.style.display = isPlaying ? 'none' : 'block';
+    iconPause.style.display = isPlaying ? 'block' : 'none';
+    liveDot.classList.toggle('live', isPlaying);
+    subtitleText.textContent = isPlaying ? 'En reproducción' : 'Pausado';
+  }
+
+  function setActiveTile(key){
+    activeStationKey = key;
+    stationsContainer.querySelectorAll('.mp-station').forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.key === key);
+    });
+  }
+
+  function fetchTitle(url){
+    fetch('https://www.youtube.com/oembed?url=' + encodeURIComponent(url) + '&format=json')
+      .then(function(r){ if(!r.ok) throw new Error('oembed'); return r.json(); })
+      .then(function(data){
+        titleEl.textContent = data.title || 'Reproduciendo';
+        subtitleText.textContent = playing ? (data.author_name || 'En reproducción') : 'Pausado';
+        if(data.author_name){
+          creditLink.textContent = data.author_name;
+          creditLink.href = data.author_url || url;
+        }
+      })
+      .catch(function(){
+        titleEl.textContent = 'Reproduciendo';
+      });
+  }
+
+  function doLoadVideo(id, autoplay){
+    if(!apiReady || !player || typeof player.loadVideoById !== 'function'){
+      pendingLoad = { id: id, autoplay: autoplay };
+      return;
+    }
+    if(autoplay){
+      player.loadVideoById(id);
+    } else {
+      player.cueVideoById(id);
+    }
+    player.setVolume(parseInt(volumeSlider.value, 10));
+  }
+
+  function loadFromUrl(url, key){
+    const id = extractVideoId(url);
+    if(!id){
+      showError(true);
+      return;
+    }
+    showError(false);
+    currentVideoUrl = url;
+    currentVideoId = id;
+    creditLink.href = url;
+    setActiveTile(key);
+    titleEl.textContent = 'Cargando…';
+    subtitleText.textContent = '';
+    doLoadVideo(id, true);
+    fetchTitle(url);
+  }
+
+  // --- Tiles de estaciones (usan el override si existe) ---
+  function renderStationTiles(){
+    stationsContainer.innerHTML = '';
+    STATIONS.forEach(function(st){
+      const btn = document.createElement('button');
+      btn.className = 'mp-station';
+      btn.dataset.key = st.key;
+      btn.textContent = st.label;
+      btn.addEventListener('click', function(){
+        loadFromUrl(effectiveUrl(st.key), st.key);
+      });
+      stationsContainer.appendChild(btn);
+    });
+  }
+  renderStationTiles();
+
+  // --- Panel de configuración: reemplazar el link de cada pista ---
+  function renderConfigFields(){
+    configBody.innerHTML = '';
+    STATIONS.forEach(function(st){
+      const field = document.createElement('div');
+      field.className = 'mp-config-field';
+
+      const label = document.createElement('div');
+      label.className = 'mp-config-label';
+      label.textContent = st.label;
+
+      const row = document.createElement('div');
+      row.className = 'mp-config-row';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Link de YouTube…';
+      input.value = overrides[st.key] || '';
+      input.dataset.key = st.key;
+
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'mp-config-reset';
+      resetBtn.textContent = 'Original';
+      resetBtn.addEventListener('click', function(){
+        input.value = '';
+      });
+
+      row.appendChild(input);
+      row.appendChild(resetBtn);
+      field.appendChild(label);
+      field.appendChild(row);
+      configBody.appendChild(field);
+    });
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'mp-config-save';
+    saveBtn.textContent = 'Guardar';
+    saveBtn.addEventListener('click', function(){
+      const inputs = configBody.querySelectorAll('input[type="text"]');
+      inputs.forEach(function(inp){
+        const key = inp.dataset.key;
+        const val = inp.value.trim();
+        if(val){ overrides[key] = val; } else { delete overrides[key]; }
+      });
+      saveOverrides(overrides);
+      if(activeStationKey && STATIONS.some(function(s){ return s.key === activeStationKey; })){
+        loadFromUrl(effectiveUrl(activeStationKey), activeStationKey);
+      }
+      saveBtn.textContent = 'Guardado ✓';
+      saveBtn.classList.add('saved');
+      setTimeout(function(){
+        saveBtn.textContent = 'Guardar';
+        saveBtn.classList.remove('saved');
+      }, 1400);
+    });
+    configBody.appendChild(saveBtn);
+  }
+  renderConfigFields();
+
+  let configOpen = false;
+  configToggle.addEventListener('click', function(){
+    configOpen = !configOpen;
+    configBody.style.display = configOpen ? 'flex' : 'none';
+    chevron.style.transform = configOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  });
+
+  // --- Play / pausa ---
+  playBtn.addEventListener('click', function(){
+    if(!currentVideoUrl){ return; }
+    if(playing){
+      if(player && player.pauseVideo) player.pauseVideo();
+    } else {
+      if(player && player.playVideo) player.playVideo();
+    }
+  });
+
+  function updateVolumeFill(){
+    volumeSlider.style.setProperty('--pct', volumeSlider.value + '%');
+  }
+
+  volumeSlider.addEventListener('input', function(){
+    updateVolumeFill();
+    if(player && player.setVolume) player.setVolume(parseInt(volumeSlider.value, 10));
+  });
+  updateVolumeFill();
+
+  // --- YouTube IFrame API ---
+  window.onYouTubeIframeAPIReady = function(){
+    apiReady = true;
+    player = new YT.Player('yt-player', {
+      height: '2',
+      width: '2',
+      playerVars: { autoplay: 0, controls: 0, disablekb: 1, modestbranding: 1, rel: 0 },
+      events: {
+        onReady: function(){
+          if(pendingLoad){
+            doLoadVideo(pendingLoad.id, pendingLoad.autoplay);
+            pendingLoad = null;
+          }
+        },
+        onStateChange: function(e){
+          if(e.data === YT.PlayerState.PLAYING){ setPlayingUI(true); }
+          else if(e.data === YT.PlayerState.PAUSED){ setPlayingUI(false); }
+          else if(e.data === YT.PlayerState.ENDED){
+            // Videos largos, pero por si acaso: reinicia en loop en vez de detenerse.
+            if(currentVideoId && player && player.seekTo){
+              player.seekTo(0);
+              player.playVideo();
+            } else {
+              setPlayingUI(false);
+            }
+          }
+        },
+        onError: function(){
+          titleEl.textContent = 'No disponible';
+          subtitleText.textContent = 'Prueba con otro link';
+        }
+      }
+    });
+  };
+
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.body.appendChild(tag);
+
+})();
+</script>
+
+</body>
+</html>
