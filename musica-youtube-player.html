@@ -197,9 +197,11 @@
     max-width: 120px;
   }
   .mp-credit a {
-    color: var(--text-muted);
-    text-decoration: none;
-    border-bottom: 1px solid var(--border-strong);
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--ink);
+    text-underline-offset: 2px;
   }
 </style>
 </head>
@@ -251,11 +253,11 @@
   // tiene el player o qué video usa cada una.
   // ---------------------------------------------------------------
   const STATIONS = [
-    { key: 'piano',    label: 'Piano',    url: 'https://www.youtube.com/watch?v=mNr8gniwy_g' },
-    { key: 'fantasia', label: 'Fantasía', url: 'https://www.youtube.com/watch?v=LCfEqudu4pc' },
-    { key: 'lofi',     label: 'Lofi',     url: 'https://www.youtube.com/watch?v=9kzE8isXlQY' },
+    { key: 'piano',    label: 'Piano',    url: 'https://www.youtube.com/watch?v=mQts56MQ0RM' },
+    { key: 'medieval', label: 'Medieval', url: 'https://youtu.be/MzvxL9HrpQM' },
+    { key: 'funk',     label: 'Funk',     url: 'https://youtu.be/7XPGU7dmZXg' },
     { key: 'pop',      label: 'Pop',      url: 'https://www.youtube.com/watch?v=jAtYkNXdZ-U' },
-    { key: 'jazz',     label: 'Jazz',     url: 'https://www.youtube.com/watch?v=MYPVQccHhAQ' }
+    { key: 'jazz',     label: 'Jazz',     url: 'https://www.youtube.com/watch?v=BYTxPFj44uo' }
   ];
 
   let player = null;
@@ -306,16 +308,13 @@
     fetch('https://www.youtube.com/oembed?url=' + encodeURIComponent(url) + '&format=json')
       .then(function(r){ if(!r.ok) throw new Error('oembed'); return r.json(); })
       .then(function(data){
-        titleEl.textContent = data.title || 'Reproduciendo';
-        subtitleText.textContent = playing ? (data.author_name || 'En reproducción') : 'Pausado';
+        subtitleText.textContent = playing ? 'En reproducción' : 'Pausado';
         if(data.author_name){
           creditLink.textContent = data.author_name;
           creditLink.href = data.author_url || url;
         }
       })
-      .catch(function(){
-        titleEl.textContent = 'Reproduciendo';
-      });
+      .catch(function(){ /* si falla, el crédito se queda en YouTube genérico */ });
   }
 
   function doLoadVideo(id, autoplay){
@@ -331,7 +330,7 @@
     player.setVolume(parseInt(volumeSlider.value, 10));
   }
 
-  function loadFromUrl(url, key){
+  function loadFromUrl(url, key, label){
     const id = extractVideoId(url);
     if(!id){
       showError(true);
@@ -342,8 +341,8 @@
     currentVideoId = id;
     creditLink.href = url;
     setActiveTile(key);
-    titleEl.textContent = 'Cargando…';
-    subtitleText.textContent = '';
+    titleEl.textContent = label || 'Reproduciendo';
+    subtitleText.textContent = 'Cargando…';
     doLoadVideo(id, true);
     fetchTitle(url);
   }
@@ -357,7 +356,7 @@
       btn.dataset.key = st.key;
       btn.textContent = st.label;
       btn.addEventListener('click', function(){
-        loadFromUrl(st.url, st.key);
+        loadFromUrl(st.url, st.key, st.label);
       });
       stationsContainer.appendChild(btn);
     });
